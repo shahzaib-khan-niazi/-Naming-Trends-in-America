@@ -16,7 +16,10 @@ This project explores **US baby name trends** using Python, pandas, and Matplotl
 ## 📊 Datasets
 
 - `NationalNames.csv`: National-level baby name data (year, gender, count).
+  http://kaggle.com/datasets/kaggle/us-baby-names?select=NationalNames.csv
+  
 - `StateNames.csv`: State-level baby name data (state, year, gender, count).
+  https://www.kaggle.com/datasets/kaggle/us-baby-names?select=StateNames.csv
 
 ## 🛠️ Tools & Libraries
 
