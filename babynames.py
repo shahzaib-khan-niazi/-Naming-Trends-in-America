@@ -93,7 +93,7 @@ predict_btn.pack()
 
 root.mainloop()
 
-# ✅ Filtering by Name & Gender
+#  Filtering by Name & Gender
 name = 'Emma'
 gender = 'F'
 filtered_data = national_data[(national_data['Name'] == name) & (national_data['Gender'] == gender)]
@@ -106,7 +106,7 @@ plt.grid(True)
 plt.tight_layout()
 plt.show()
 
-# ✅ Regression: Linear trend line
+#  Regression: Linear trend line
 X = filtered_data['Year'].values.reshape(-1, 1)
 y = filtered_data['Count'].values
 model = LinearRegression()
@@ -124,13 +124,13 @@ plt.grid(True)
 plt.tight_layout()
 plt.show()
 
-# ✅ Top 5 Names Per Decade
+#  Top 5 Names Per Decade
 national_data['Decade'] = (national_data['Year'] // 10) * 10
 decade_group = national_data.groupby(['Decade', 'Name'])['Count'].sum().reset_index()
 top5_decade = decade_group.sort_values(['Decade', 'Count'], ascending=[True, False]).groupby('Decade').head(5)
 print("\n",top5_decade)
 
-# ✅ Regional Comparison: CA vs TX
+#  Regional Comparison: CA vs TX
 states = ['CA', 'TX']
 plt.figure(figsize=(10, 5))
 for state in states:
@@ -145,14 +145,14 @@ plt.grid(True)
 plt.tight_layout()
 plt.show()
 
-# ✅ Most Popular Names Per State in 2000
+# Most Popular Names Per State in 2000
 year = 2000
 year_filtered = state_data[state_data['Year'] == year].groupby(['State', 'Name'])['Count'].sum().reset_index()
 idx = year_filtered.groupby('State')['Count'].idxmax()
 popular_names = year_filtered.loc[idx].sort_values('State')
 print("\n",popular_names)
 
-# ✅ Rising and Falling Names
+# Rising and Falling Names
 recent = national_data[national_data['Year'].between(2010, 2020)].groupby('Name')['Count'].sum()
 early = national_data[national_data['Year'].between(1990, 2000)].groupby('Name')['Count'].sum()
 change_table = pd.DataFrame({'Early': early, 'Recent': recent}).dropna()
@@ -165,21 +165,21 @@ print(top_rising)
 print("\nTop Falling Names:")
 print("\n",top_falling)
 
-# ✅ Names with Longest Popularity Lifespan
+# Names with Longest Popularity Lifespan
 lifespan = national_data[national_data['Count'] > 1000].groupby('Name')['Year'].agg(['min', 'max'])
 lifespan['Lifespan'] = lifespan['max'] - lifespan['min']
 longest_lifespan = lifespan.sort_values('Lifespan', ascending=False).head(10)
 print("Names with Longest Popularity Lifespan:")
 print("\n",longest_lifespan)
 
-# ✅ Volatility Analysis
+# Volatility Analysis
 name = 'Isabella'
 vol_data = national_data[national_data['Name'] == name].sort_values('Year')
 vol_data['Change'] = vol_data['Count'].pct_change()
 volatility = vol_data['Change'].std()
 print(f"\nVolatility of '{name}': {volatility:.4f}")
 
-# ✅ Regional Uniqueness Index
+#  Regional Uniqueness Index
 state_counts = state_data.groupby('Name')['State'].nunique()
 total_counts = state_data.groupby('Name')['Count'].sum()
 uniqueness_table = pd.DataFrame({
@@ -191,7 +191,7 @@ unique_names = uniqueness_table.sort_values('Uniqueness_Score', ascending=False)
 print("Top 10 Regionally Unique Names:")
 print("\n",unique_names.head(10))
 
-# ✅ Comeback Names: U-Shaped Trend Detection
+#  Comeback Names: U-Shaped Trend Detection
 history = national_data.groupby('Name')['Year'].nunique()
 long_names = history[history >= 30].index
 comeback_names = []
@@ -206,7 +206,7 @@ for name in long_names:
 print("Top 10 Possible Comeback Names:")
 print("\n",comeback_names[:10])
 
-# ✅ Plot a Comeback Name
+#  Plot a Comeback Name
 if comeback_names:
     name = comeback_names[0]
     comeback_trend = national_data[national_data['Name'] == name].groupby('Year')['Count'].sum()
@@ -217,7 +217,7 @@ if comeback_names:
     plt.tight_layout()
     plt.show()
 
-# ✅ Gender Distribution Pie Chart
+#  Gender Distribution Pie Chart
 name = 'Taylor'
 gender_data = national_data[national_data['Name'] == name]
 gender_counts = gender_data.groupby('Gender')['Count'].sum()
@@ -237,4 +237,5 @@ plt.ylabel('Total Count')
 plt.xticks(rotation=45)
 plt.grid(axis='y', linestyle='--', alpha=0.7)
 plt.tight_layout()
+
 plt.show()
