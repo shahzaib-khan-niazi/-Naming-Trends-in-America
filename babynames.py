@@ -1,0 +1,240 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.preprocessing import MinMaxScaler
+import numpy as np
+import tkinter as tk
+from tkinter import messagebox
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+# Load dataa
+national_data = pd.read_csv('NationalNames.csv')
+state_data = pd.read_csv('StateNames.csv')
+
+null_nd=national_data.isnull().sum()
+null_sd=state_data.isnull().sum()
+print("check for null values for nation data\n ",null_nd,"\t for state data \n",null_sd)
+
+duplicate_nd=national_data.duplicated().sum()
+duplicate_sd=state_data.duplicated().sum()
+print("\n check for duplicated values for nation data \n ",duplicate_nd,"\n for state data \n",duplicate_sd)
+
+
+print("\nNational Data:")
+print(national_data.head())
+
+print("\nState Data:")
+print(state_data.head())
+national_data = national_data[national_data['Count'] > 0]  # Remove zero-count entries
+
+# Initialize Tkinter
+root = tk.Tk()
+root.title("Baby Name Popularity Predictor")
+root.geometry("800x600")
+
+# UI Elements
+name_label = tk.Label(root, text="Enter Baby Name:")
+name_label.pack()
+name_entry = tk.Entry(root)
+name_entry.pack()
+
+gender_var = tk.StringVar(value='F')
+gender_frame = tk.Frame(root)
+tk.Label(gender_frame, text="Select Gender:").pack(side=tk.LEFT)
+tk.Radiobutton(gender_frame, text="Female", variable=gender_var, value='F').pack(side=tk.LEFT)
+tk.Radiobutton(gender_frame, text="Male", variable=gender_var, value='M').pack(side=tk.LEFT)
+gender_frame.pack()
+
+fig, ax = plt.subplots(figsize=(8, 4))
+canvas = FigureCanvasTkAgg(fig, master=root)
+canvas.get_tk_widget().pack()
+
+def predict_popularity():
+    name = name_entry.get().capitalize()
+    gender = gender_var.get()
+    filtered = national_data[(national_data['Name'] == name) & (national_data['Gender'] == gender)]
+
+    if filtered.empty:
+        messagebox.showerror("Error", f"No data found for name '{name}' and gender '{gender}'")
+        return
+
+    # Prepare data
+    filtered = filtered.sort_values('Year')
+    X = filtered['Year'].values.reshape(-1, 1)
+    y = filtered['Count'].values
+
+    # Linear Regression
+    lin_model = LinearRegression()
+    lin_model.fit(X, y)
+    future_years = np.arange(filtered['Year'].max() + 1, filtered['Year'].max() + 6).reshape(-1, 1)
+    future_preds = lin_model.predict(future_years)
+
+    # Logistic Regression with Scaling
+    scaler = MinMaxScaler()
+    y_scaled = scaler.fit_transform(y.reshape(-1, 1)).ravel()
+    log_model = LogisticRegression(max_iter=1000)
+    log_model.fit(X, y_scaled > 0.5)
+    log_preds_prob = log_model.predict_proba(future_years)[:, 1]
+
+    # Plot
+    ax.clear()
+    ax.plot(filtered['Year'], y, label='Actual', marker='o')
+    ax.plot(future_years.ravel(), future_preds, '--', label='Linear Prediction')
+    ax.plot(future_years.ravel(), log_preds_prob * y.max(), ':', label='Logistic Prediction (scaled)')
+    ax.set_title(f"Popularity Prediction for '{name}'")
+    ax.set_xlabel("Year")
+    ax.set_ylabel("Count")
+    ax.legend()
+    ax.grid(True)
+    canvas.draw()
+
+predict_btn = tk.Button(root, text="Predict Popularity", command=predict_popularity)
+predict_btn.pack()
+
+root.mainloop()
+
+# ✅ Filtering by Name & Gender
+name = 'Emma'
+gender = 'F'
+filtered_data = national_data[(national_data['Name'] == name) & (national_data['Gender'] == gender)]
+plt.figure(figsize=(10, 5))
+plt.plot(filtered_data['Year'], filtered_data['Count'], marker='o')
+plt.title(f"Popularity of '{name}' (National)")
+plt.xlabel("Year")
+plt.ylabel("Count")
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+# ✅ Regression: Linear trend line
+X = filtered_data['Year'].values.reshape(-1, 1)
+y = filtered_data['Count'].values
+model = LinearRegression()
+model.fit(X, y)
+y_pred = model.predict(X)
+
+plt.figure(figsize=(10, 5))
+plt.plot(filtered_data['Year'], filtered_data['Count'], label='Actual')
+plt.plot(filtered_data['Year'], y_pred, linestyle='--', color='red', label='Regression Line')
+plt.title(f"Trend Line for '{name}'")
+plt.xlabel("Year")
+plt.ylabel("Count")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+# ✅ Top 5 Names Per Decade
+national_data['Decade'] = (national_data['Year'] // 10) * 10
+decade_group = national_data.groupby(['Decade', 'Name'])['Count'].sum().reset_index()
+top5_decade = decade_group.sort_values(['Decade', 'Count'], ascending=[True, False]).groupby('Decade').head(5)
+print("\n",top5_decade)
+
+# ✅ Regional Comparison: CA vs TX
+states = ['CA', 'TX']
+plt.figure(figsize=(10, 5))
+for state in states:
+    state_filtered = state_data[(state_data['Name'] == name) & (state_data['State'] == state) & (state_data['Gender'] == gender)]
+    plt.plot(state_filtered['Year'], state_filtered['Count'], label=state)
+
+plt.title(f"Popularity of '{name}' in CA vs TX")
+plt.xlabel("Year")
+plt.ylabel("Count")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+# ✅ Most Popular Names Per State in 2000
+year = 2000
+year_filtered = state_data[state_data['Year'] == year].groupby(['State', 'Name'])['Count'].sum().reset_index()
+idx = year_filtered.groupby('State')['Count'].idxmax()
+popular_names = year_filtered.loc[idx].sort_values('State')
+print("\n",popular_names)
+
+# ✅ Rising and Falling Names
+recent = national_data[national_data['Year'].between(2010, 2020)].groupby('Name')['Count'].sum()
+early = national_data[national_data['Year'].between(1990, 2000)].groupby('Name')['Count'].sum()
+change_table = pd.DataFrame({'Early': early, 'Recent': recent}).dropna()
+change_table['Change'] = change_table['Recent'] - change_table['Early']
+change_table['Score'] = change_table['Change'] / change_table['Early']
+top_rising = change_table.sort_values('Score', ascending=False).head(10)
+top_falling = change_table.sort_values('Score').head(10)
+print("Top Rising Names:")
+print(top_rising)
+print("\nTop Falling Names:")
+print("\n",top_falling)
+
+# ✅ Names with Longest Popularity Lifespan
+lifespan = national_data[national_data['Count'] > 1000].groupby('Name')['Year'].agg(['min', 'max'])
+lifespan['Lifespan'] = lifespan['max'] - lifespan['min']
+longest_lifespan = lifespan.sort_values('Lifespan', ascending=False).head(10)
+print("Names with Longest Popularity Lifespan:")
+print("\n",longest_lifespan)
+
+# ✅ Volatility Analysis
+name = 'Isabella'
+vol_data = national_data[national_data['Name'] == name].sort_values('Year')
+vol_data['Change'] = vol_data['Count'].pct_change()
+volatility = vol_data['Change'].std()
+print(f"\nVolatility of '{name}': {volatility:.4f}")
+
+# ✅ Regional Uniqueness Index
+state_counts = state_data.groupby('Name')['State'].nunique()
+total_counts = state_data.groupby('Name')['Count'].sum()
+uniqueness_table = pd.DataFrame({
+    'States_Count': state_counts,
+    'Total_Count': total_counts
+})
+uniqueness_table['Uniqueness_Score'] = uniqueness_table['Total_Count'] / uniqueness_table['States_Count']
+unique_names = uniqueness_table.sort_values('Uniqueness_Score', ascending=False)
+print("Top 10 Regionally Unique Names:")
+print("\n",unique_names.head(10))
+
+# ✅ Comeback Names: U-Shaped Trend Detection
+history = national_data.groupby('Name')['Year'].nunique()
+long_names = history[history >= 30].index
+comeback_names = []
+for name in long_names:
+    series = national_data[national_data['Name'] == name].groupby('Year')['Count'].sum()
+    if len(series) < 30: continue
+    norm = series / series.max()
+    years = np.arange(len(norm))
+    coeffs = np.polyfit(years, norm, deg=2)
+    if coeffs[0] > 0:
+        comeback_names.append(name)
+print("Top 10 Possible Comeback Names:")
+print("\n",comeback_names[:10])
+
+# ✅ Plot a Comeback Name
+if comeback_names:
+    name = comeback_names[0]
+    comeback_trend = national_data[national_data['Name'] == name].groupby('Year')['Count'].sum()
+    comeback_trend.plot(title=f"Comeback Trend for {name}", figsize=(10, 5))
+    plt.xlabel("Year")
+    plt.ylabel("Count")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+# ✅ Gender Distribution Pie Chart
+name = 'Taylor'
+gender_data = national_data[national_data['Name'] == name]
+gender_counts = gender_data.groupby('Gender')['Count'].sum()
+plt.figure(figsize=(6, 6))
+plt.pie(gender_counts, labels=gender_counts.index, autopct='%1.1f%%', startangle=90, colors=['lightblue', 'pink'])
+plt.title(f"Gender Distribution for Name: {name}")
+plt.axis('equal')
+plt.tight_layout()
+plt.show()
+
+top_names = national_data.groupby('Name')['Count'].sum().sort_values(ascending=False).head(10)
+plt.figure(figsize=(10, 6))
+top_names.plot(kind='bar', color='skyblue')
+plt.title('Top 10 Most Popular Baby Names in the US (All Years)')
+plt.xlabel('Name')
+plt.ylabel('Total Count')
+plt.xticks(rotation=45)
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.tight_layout()
+plt.show()
